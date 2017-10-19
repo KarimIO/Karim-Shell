@@ -1,0 +1,7 @@
+{
+    "files.associations": {
+        "unistd.h": "c",
+        "iostream": "c",
+        "initializer_list": "c"
+    }
+}
