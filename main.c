@@ -11,7 +11,7 @@ const int kMaxLine = 8;
 const unsigned int kMaxHistory = 3;
 pid_t process;
 char cwd[1024];
-char login[256];
+char *login;
 
 #define GRN   "\x1B[32m"
 #define BLU   "\x1B[34m"
@@ -195,12 +195,10 @@ void setCWD() {
 }
 
 void setUSR() {
-    if (getlogin_r(login, sizeof(login)) != 0) {
-        strcpy(login, "[unknown user]");
+    login = getenv("USER");
+    if (login == NULL) {
+        login = "[unknown user]";
     }
-
-    // getlogin_r causes invalid input sometimes. This clears stdin.
-    fseek(stdin,0,SEEK_END);
 }
 
 void checkSudo() {
