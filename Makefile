@@ -1,2 +1,2 @@
 All:
-	@cc main.c -o ksh
+	@cc main.c -o kash

@@ -4,10 +4,11 @@
 #include <unistd.h>     // Fork
 #include <stdlib.h>
 #include <signal.h>
+#include <regex.h>
 
 const int kBufferSize = 1024;
 const int kMaxLine = 8;
-const unsigned int kMaxHistory = 4;
+const unsigned int kMaxHistory = 3;
 pid_t process;
 char cwd[1024];
 char login[256];
@@ -25,7 +26,7 @@ typedef enum {
 } bool;
 
 void printPrompt() {
-    printf("ksh " BOLD GRN "%s: " BLU "(%s)" RESET " > ", login, cwd);
+    printf("kash " BOLD GRN "%s: " BLU "(%s)" RESET " > ", login, cwd);
     fflush(stdout);
 }
 
@@ -134,11 +135,15 @@ void printCommand(char **args) {
     }
 }
 
+void specprint(const char *str) {
+    printf("%s\n", str);
+
+    fflush(stdin);
+    fflush(stdout);
+}
+
 void handleHistory(char ***args) {
     if (args[kMaxHistory-1] != NULL) {
-        printf("Deleting ");
-        printCommand(args[kMaxHistory-1]);
-        printf("\n");
         for (int i = 0; ; ++i) {
             if (args[kMaxHistory-1][i] == NULL)
                 break;
@@ -171,8 +176,22 @@ void printHistory(char ***args) {
 }
 
 void setCWD() {
-    if (getcwd(cwd, sizeof(cwd)) == NULL)
+    char temp[1024];
+    if (getcwd(temp, sizeof(temp)) == NULL) {
         strcpy(cwd, "[unknown path]");
+    }
+    else {
+        // Replace /home/x or /users/x with ~
+        const char *home = getenv("HOME");
+        size_t homelen = strlen(home);
+        if (strncmp(home, temp, homelen) == 0) {
+            cwd[0] = '~';
+            strcpy(&cwd[1], &temp[homelen]);
+        }
+        else {
+            strcpy(cwd, temp);
+        }
+    }
 }
 
 void setUSR() {
@@ -193,7 +212,7 @@ void checkSudo() {
 
 int main(int argc, char *argv[]) {
     process = 0;
-    printf("Welcome to the " BOLD "Karim SHell" REGULAR "(ksh).\n\tUse 'help' for details.\n");
+    printf("Welcome to the " BOLD "KArim SHell" REGULAR "(kash).\n\tUse 'help' for details.\n");
     signal(SIGINT, exitHandler);
 
     char ***args = malloc(sizeof(char **) * kMaxHistory);

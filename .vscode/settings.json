@@ -2,6 +2,8 @@
     "files.associations": {
         "unistd.h": "c",
         "iostream": "c",
-        "initializer_list": "c"
+        "initializer_list": "c",
+        "string": "c",
+        "stdlib.h": "c"
     }
 }
