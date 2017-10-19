@@ -244,7 +244,7 @@ int main(int argc, char *argv[]) {
             printf("\thelp:\t\tGet help.\n");
             printf("\tcd:\t\tChange directory.\n");
             printf("\t!!:\t\tRun last command.\n");
-            printf("\t!n:\t\tRun command [n].\n");
+            printf("\t!n:\t\tRun command [n]. See 'history' for the command this refers to.\n");
             printf("\thistory:\tShows all commands.\n");
             printf("\texit:\t\tExit program.\n");
 
@@ -273,13 +273,20 @@ int main(int argc, char *argv[]) {
                     fflush(stdout);
                     execute(args[0]);
                 }
+                else {
+                    printf("No commands in history! Please insert a command before attempting this.\n");
+                }
             }
             else {
                 int v = atoi(&line[1]);
                 int min = max(numHistory - kMaxHistory, 0) + 1;
                 int max = numHistory;
                 if (v < min || v > max) {
-                    printf("\tIncorrect Syntax! Please use a value from !%i to !%i.\n", min, max);
+                    printf("No such command in history!\n");
+                    if (numHistory == 0)
+                        printf("\tPlease insert a command before attempting this.\n");
+                    else
+                        printf("\tPlease use a value from !%i to !%i.\n", min, max);
                 }
                 else if (args[v-1] != NULL) {
                     v -= min;
