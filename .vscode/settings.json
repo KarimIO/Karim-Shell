@@ -4,6 +4,7 @@
         "iostream": "c",
         "initializer_list": "c",
         "string": "c",
-        "stdlib.h": "c"
+        "stdlib.h": "c",
+        "limits": "c"
     }
 }

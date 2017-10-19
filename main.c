@@ -5,10 +5,12 @@
 #include <stdlib.h>
 #include <signal.h>
 #include <regex.h>
+#include <stdbool.h>
 
 const int kBufferSize = 1024;
 const int kMaxLine = 8;
-const unsigned int kMaxHistory = 3;
+const unsigned int kMaxHistory = 10;
+unsigned int numHistory = 0;
 pid_t process;
 char cwd[1024];
 char *login;
@@ -19,11 +21,6 @@ char *login;
 
 #define BOLD "\033[32;1m"
 #define REGULAR "\033[0m"
-
-typedef enum {
-    false = 0,
-    true
-} bool;
 
 void printPrompt() {
     printf("kash " BOLD GRN "%s: " BLU "(%s)" RESET " > ", login, cwd);
@@ -156,6 +153,12 @@ void handleHistory(char ***args) {
     for (int i = 8; i >= 0; --i) {
         args[i+1] = args[i];
     }
+    
+    numHistory++;
+}
+
+int max(int a, int b) {
+    return (a > b) ? a : b;
 }
 
 void printHistory(char ***args) {
@@ -163,16 +166,15 @@ void printHistory(char ***args) {
         printf("No available history. Please write a command before attempting history.\n");
     }
     else {
-        for (int i = 9; i >= 0; --i) {
+        for (int i = kMaxHistory-1; i >= 0; --i) {
             if (args[i] != NULL) {
-                printf("%i: ", i+1);
+                int m = max(numHistory - kMaxHistory, 0) + i + 1;
+                printf("%i: ", m);
                 printCommand(args[i]);
                 printf("\n");
             }
         }
     }
-    fflush(stdin);
-    fflush(stdout);
 }
 
 void setCWD() {
@@ -199,6 +201,7 @@ void setUSR() {
     if (login == NULL) {
         login = "[unknown user]";
     }
+    fseek(stdin,0,SEEK_END);
 }
 
 void checkSudo() {
@@ -230,9 +233,7 @@ int main(int argc, char *argv[]) {
         line = readLine();
         fflush(stdin);
         fflush(stdout);
-        if(line[0] == ' ') {
-        }
-        else if (strcmp(line, "exit") == 0) {
+        if (strcmp(line, "exit") == 0) {
             looping = false;
         }
         else if (strcmp(line, "history") == 0) {
@@ -275,13 +276,17 @@ int main(int argc, char *argv[]) {
             }
             else {
                 int v = atoi(&line[1]);
-                if (v < 1 || v > 10)
-                    printf("\tIncorrect Syntax! Please use a value from !1 to !10.\n");
+                int min = max(numHistory - kMaxHistory, 0) + 1;
+                int max = numHistory;
+                if (v < min || v > max) {
+                    printf("\tIncorrect Syntax! Please use a value from !%i to !%i.\n", min, max);
+                }
                 else if (args[v-1] != NULL) {
-                    printCommand(args[v-1]);
+                    v -= min;
+                    printCommand(args[v]);
                     printf("\n");
                     fflush(stdout);
-                    execute(args[v-1]);
+                    execute(args[v]);
                     checkSudo(); //I don't know another good way to do this
                 }
             }
