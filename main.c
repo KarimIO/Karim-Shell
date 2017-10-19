@@ -7,7 +7,7 @@
 
 const int kBufferSize = 1024;
 const int kMaxLine = 8;
-const unsigned int kMaxHistory = 20;
+const unsigned int kMaxHistory = 4;
 pid_t process;
 char cwd[1024];
 char login[256];
@@ -25,7 +25,7 @@ typedef enum {
 } bool;
 
 void printPrompt() {
-    printf("ksh " BOLD GRN "%s " BLU "%s" RESET " > ", login, cwd);
+    printf("ksh " BOLD GRN "%s: " BLU "(%s)" RESET " > ", login, cwd);
     fflush(stdout);
 }
 
@@ -56,7 +56,8 @@ char *readLine() {
         c = getchar();
     }
 
-    buffer[++i] = '\0';
+    buffer = (char *)realloc(buffer, (i + 1));
+    buffer[i] = '\0';
     return buffer;
 }
 
@@ -121,28 +122,34 @@ void execute(char **args) {
     }
 }
 
-void handleHistory(char ***args) {
-    if (args[9] != NULL) {
-        for (int i = 0; ; ++i) {
-            if (args[9][i] == NULL)
-                break;
-            else 
-                free(args[9][i]);
-        }
-        free(args[9]);
-    }
-
-    for (int i = 8; i >= 0; --i) {
-        args[i+1] = args[i];
-    }
-}
-
 void printCommand(char **args) {
-    for (int i = 0; ; ++i) {
+    if (args[0] != NULL)
+        printf(BOLD "%s " REGULAR , args[0]);
+
+    for (int i = 1; ; ++i) {
         if (args[i] == NULL)
             break;
         else 
             printf("%s " , args[i]);
+    }
+}
+
+void handleHistory(char ***args) {
+    if (args[kMaxHistory-1] != NULL) {
+        printf("Deleting ");
+        printCommand(args[kMaxHistory-1]);
+        printf("\n");
+        for (int i = 0; ; ++i) {
+            if (args[kMaxHistory-1][i] == NULL)
+                break;
+            else 
+                free(args[kMaxHistory-1][i]);
+        }
+        free(args[kMaxHistory-1]);
+    }
+
+    for (int i = 8; i >= 0; --i) {
+        args[i+1] = args[i];
     }
 }
 
@@ -206,7 +213,9 @@ int main(int argc, char *argv[]) {
         line = readLine();
         fflush(stdin);
         fflush(stdout);
-        if (strcmp(line, "exit") == 0) {
+        if(line[0] == ' ') {
+        }
+        else if (strcmp(line, "exit") == 0) {
             looping = false;
         }
         else if (strcmp(line, "history") == 0) {
@@ -220,6 +229,9 @@ int main(int argc, char *argv[]) {
             printf("\t!n:\t\tRun command [n].\n");
             printf("\thistory:\tShows all commands.\n");
             printf("\texit:\t\tExit program.\n");
+
+            handleHistory(args);
+            args[0] = parseLine(line);
         }
         else if (strlen(line) >= 2 && line[0] == 'c' && line[1] == 'd') {
             if (strlen(line) < 4)
@@ -231,6 +243,9 @@ int main(int argc, char *argv[]) {
                 chdir(&line[3]);
                 setCWD();
             }
+
+            handleHistory(args);
+            args[0] = parseLine(line);
         }
         else if (line[0] == '!') {
             if (line[1] == '!') {
