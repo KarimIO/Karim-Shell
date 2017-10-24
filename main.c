@@ -9,11 +9,12 @@
 
 const int kBufferSize = 1024;
 const int kMaxLine = 8;
-const unsigned int kMaxHistory = 3;
+unsigned int kMaxHistory = 10;
 unsigned int numHistory = 0;
 pid_t process;
 char cwd[1024];
-char *login;
+char login[128];
+char computer_name[128];
 
 #define GRN   "\x1B[32m"
 #define BLU   "\x1B[34m"
@@ -23,7 +24,7 @@ char *login;
 #define REGULAR "\033[0m"
 
 void printPrompt() {
-    printf("kash " BOLD GRN "%s: " BLU "(%s)" RESET " > ", login, cwd);
+    printf("kash " BOLD GRN "%s@%s: " BLU "(%s)" RESET " > ", login, computer_name, cwd);
     fflush(stdout);
 }
 
@@ -102,7 +103,26 @@ void exitHandler(int sig) {
     }
 }
 
+void printCommand(char **args) {
+    if (args[0] != NULL) {
+        printf(BOLD "%s " REGULAR , args[0]);
+    
+        int i = 1;
+        while (args[i] != NULL) {
+            printf("%s " , args[i++]);
+        }
+    }
+}
+
 void execute(char **args) {
+    unsigned int i = 0;
+    for (; args[i] != NULL; ++i);
+        
+    bool background_process = false;
+    if (strcmp(args[i-1], "&") == 0) {
+        background_process  = true;
+        args[i-1] = NULL;
+    }
     process = fork();
     if (process == 0) {
         if (execvp(args[0], args) == -1) {
@@ -115,19 +135,14 @@ void execute(char **args) {
         process = 0;
     }
     else {
-        wait(NULL);
-        process = 0;
-    }
-}
-
-void printCommand(char **args) {
-    if (args[0] != NULL) {
-        printf(BOLD "%s " REGULAR , args[0]);
-    
-        int i = 1;
-        while (args[i] != NULL) {
-            printf("%s " , args[i++]);
+        if (background_process) {
+            printf("Running process [%i] in the background.\n", process);
         }
+        else {
+            wait(NULL);
+        }
+
+        process = 0;
     }
 }
 
@@ -139,18 +154,8 @@ void specprint(const char *str) {
 }
 
 void handleHistory(char ***args) {
-    printf("%p\n", args[kMaxHistory-1]);
     if (args[kMaxHistory-1] != NULL) {
-        int i = 0;
-        while (args[kMaxHistory-1][i] != NULL) {
-            printf("%s...", args[kMaxHistory-1][i]);
-            fflush(stdout);
-            //free(args[kMaxHistory-1][i]);
-            printf("Released!\n");
-            i++;
-        }
-        printf("End\n");
-        //free(args[kMaxHistory-1]);
+        free(args[kMaxHistory-1]);
     }
 
     for (int i = kMaxHistory-2; i >= 0; --i) {
@@ -200,10 +205,16 @@ void setCWD() {
 }
 
 void setUSR() {
-    login = getenv("USER");
-    if (login == NULL) {
-        login = "[unknown user]";
+    const char *temp = getenv("USER");
+    if (temp == NULL) {
+        if (getlogin_r(login, 128) != 0) {
+            strcpy(login, "[unknown user]");
+        }
     }
+    else {
+        strcpy(login, temp);
+    }
+
     fseek(stdin,0,SEEK_END);
 }
 
@@ -214,17 +225,45 @@ void checkSudo() {
     }
 }
 
+void setComputerName() {
+    const char *temp = getenv("HOSTNAME");
+    if (temp == NULL) {
+        if (gethostname(computer_name, 128) != 0) {
+            strcpy(computer_name, "computer");
+        }
+    }
+    else {
+        strcpy(computer_name, temp);
+    }
+
+}
+
 int main(int argc, char *argv[]) {
     process = 0;
     printf("Welcome to the " BOLD "KArim SHell" REGULAR "(kash).\n\tUse 'help' for details.\n");
     signal(SIGINT, exitHandler);
 
+    // If we supply an extra parameter, set the max history to it, with a minimum value of 5.
+    if (argc > 1) {
+        int val = atoi(argv[1]);
+        if (val < 5) {
+            kMaxHistory = 5;
+            printf("\tMax history value is invalid! Cannot be less than 5. Setting to 5.\n");
+        }
+        else {
+            kMaxHistory = val;
+            printf("\tMax history set to: %u\n", kMaxHistory);
+        }
+    }
+
+    unsigned int *numCommands = (unsigned int *)malloc(sizeof(unsigned int) * kMaxHistory);
     char ***args = malloc(sizeof(char **) * kMaxHistory);
     char   *line;
     bool    looping = true;
 
     setCWD();
     setUSR();
+    setComputerName();
     checkSudo();
 
     fflush(stdin);
@@ -297,7 +336,7 @@ int main(int argc, char *argv[]) {
                     printf("\n");
                     fflush(stdout);
                     execute(args[v]);
-                    checkSudo(); //I don't know another good way to do this
+                    checkSudo();
                 }
             }
         }
