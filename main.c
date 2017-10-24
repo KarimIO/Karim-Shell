@@ -9,7 +9,7 @@
 
 const int kBufferSize = 1024;
 const int kMaxLine = 8;
-const unsigned int kMaxHistory = 10;
+const unsigned int kMaxHistory = 3;
 unsigned int numHistory = 0;
 pid_t process;
 char cwd[1024];
@@ -121,14 +121,13 @@ void execute(char **args) {
 }
 
 void printCommand(char **args) {
-    if (args[0] != NULL)
+    if (args[0] != NULL) {
         printf(BOLD "%s " REGULAR , args[0]);
-
-    for (int i = 1; ; ++i) {
-        if (args[i] == NULL)
-            break;
-        else 
-            printf("%s " , args[i]);
+    
+        int i = 1;
+        while (args[i] != NULL) {
+            printf("%s " , args[i++]);
+        }
     }
 }
 
@@ -140,17 +139,21 @@ void specprint(const char *str) {
 }
 
 void handleHistory(char ***args) {
+    printf("%p\n", args[kMaxHistory-1]);
     if (args[kMaxHistory-1] != NULL) {
-        for (int i = 0; ; ++i) {
-            if (args[kMaxHistory-1][i] == NULL)
-                break;
-            else 
-                free(args[kMaxHistory-1][i]);
+        int i = 0;
+        while (args[kMaxHistory-1][i] != NULL) {
+            printf("%s...", args[kMaxHistory-1][i]);
+            fflush(stdout);
+            //free(args[kMaxHistory-1][i]);
+            printf("Released!\n");
+            i++;
         }
-        free(args[kMaxHistory-1]);
+        printf("End\n");
+        //free(args[kMaxHistory-1]);
     }
 
-    for (int i = 8; i >= 0; --i) {
+    for (int i = kMaxHistory-2; i >= 0; --i) {
         args[i+1] = args[i];
     }
     
@@ -303,6 +306,8 @@ int main(int argc, char *argv[]) {
             args[0] = parseLine(line);
             execute(args[0]);
         }
+        fflush(stdin);
+        fflush(stdout);
     } while(looping);
 
     return 0;
