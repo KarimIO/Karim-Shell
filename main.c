@@ -1,3 +1,10 @@
+// ========================================
+// Author:  Karim Abdel Hamid (900 143 463)
+// Project: KArim SHell (KASH)
+// File:    main.c
+// License: Unlicense
+// ========================================
+
 #include <string.h>
 #include <stdio.h>      // Printf
 #include <sys/wait.h>   // Wait

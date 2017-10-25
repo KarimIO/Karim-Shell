@@ -1,7 +1,8 @@
 # KArim SHell (KASH)
+Developed by Karim Abdel Hamid (AUC Student ID: 900 143 463). A simple shell  made for my Operating Systems class.
 
 ## How to build
-Simple, use makefile. I didn't add a cmake project because this is a POSIX shell, and on POSIX systems, most use make.
+Either use `cmake .` to create a file, or run `make`.
 
 ## Features
  * Colors!
@@ -18,7 +19,7 @@ Simple, use makefile. I didn't add a cmake project because this is a POSIX shell
 ### Q: Is this product good?
 A: Heckin' yes! 
 
-### BUGS!
+### Q: BUGS!
 A: Submit an issue! I'll take care of it when I can!
 
 ### Q: Why do this?
